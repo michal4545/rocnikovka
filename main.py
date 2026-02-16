@@ -8,27 +8,27 @@ pygame.init()
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Samurai")
-icon = pygame.image.load('icon.png')
+icon = pygame.image.load('images/icon.png')
 pygame.display.set_icon(icon)
  
 clock = pygame.time.Clock()
 FPS = 60
 
-DEBUG_SHOW_PLATFORM_NUMBERS = True
-DEBUG_SHOW_HITBOX = True
-DEBUG_HOT_RELOAD = True
-DEBUG_TELEPORT_ON_CLICK = True
+DEBUG_SHOW_PLATFORM_NUMBERS = False
+DEBUG_SHOW_HITBOX = False
+DEBUG_HOT_RELOAD = False
+DEBUG_TELEPORT_ON_CLICK = False
  
 WORLD_HEIGHT = 9000
  
-sprite_sheet = pygame.image.load("player_sprite.png").convert_alpha()
-sprite_run = pygame.image.load("player_run_sprite.png").convert_alpha()
-sprite_fly = pygame.image.load("player_fly_sprite.png").convert_alpha()
-sprite_fall = pygame.image.load("player_fall_sprite.png").convert_alpha()
-sprite_slide = pygame.image.load("player_slide_sprite.png").convert_alpha()
-player_jump_charge = pygame.image.load("player_jump_charge.png").convert_alpha()
-player_too_high = pygame.image.load("fast_fall.png").convert_alpha()
-wall_grab_image = pygame.image.load("wall_grab.png").convert_alpha()
+sprite_sheet = pygame.image.load("images/player_sprite.png").convert_alpha()
+sprite_run = pygame.image.load("images/player_run_sprite.png").convert_alpha()
+sprite_fly = pygame.image.load("images/player_fly_sprite.png").convert_alpha()
+sprite_fall = pygame.image.load("images/player_fall_sprite.png").convert_alpha()
+sprite_slide = pygame.image.load("images/player_slide_sprite.png").convert_alpha()
+player_jump_charge = pygame.image.load("images/player_jump_charge.png").convert_alpha()
+player_too_high = pygame.image.load("images/fast_fall.png").convert_alpha()
+wall_grab_image = pygame.image.load("images/wall_grab.png").convert_alpha()
 
 wall_grab_image = pygame.transform.scale(wall_grab_image, (55, 75))
 player_jump_charge = pygame.transform.scale(player_jump_charge, (67, 78))
@@ -130,7 +130,7 @@ player_vel_x_before = 0
    
 camera_y = 0
 
-def export_map_to_png(platforms, filename="level_map.png"):
+def export_map_to_png(platforms, filename="images/level_map.png"):
     map_surface = pygame.Surface((WIDTH, WORLD_HEIGHT))
     map_surface.fill((98, 144, 200))
 
