@@ -14,10 +14,10 @@ pygame.display.set_icon(icon)
 clock = pygame.time.Clock()
 FPS = 60
 
-DEBUG_SHOW_PLATFORM_NUMBERS = False
-DEBUG_SHOW_HITBOX = False
-DEBUG_HOT_RELOAD = False
-DEBUG_TELEPORT_ON_CLICK = False
+DEBUG_SHOW_PLATFORM_NUMBERS = True
+DEBUG_SHOW_HITBOX = True
+DEBUG_HOT_RELOAD = True
+DEBUG_TELEPORT_ON_CLICK = True
  
 WORLD_HEIGHT = 9000
  
@@ -84,6 +84,7 @@ sprite_offset_x = -10
 sprite_offset_y = -5
  
 player = pygame.Rect(400, WORLD_HEIGHT - 50, 35, 70)
+CAMERA_FOOT_OFFSET = 70
 player_color = (255, 255, 255)
 player_speed = 0.6
 
@@ -121,6 +122,8 @@ grounded_platform = None
 player_x_before = player.x
 
 MIN_PLATFORM_HEIGHT = 80
+friction = 0.3
+icy = False
 
 player_vel_x = 0
 player_vel_y = 0
@@ -131,8 +134,8 @@ player_vel_x_before = 0
 camera_y = 0
 
 def export_map_to_png(platforms, filename="images/level_map.png"):
-    map_surface = pygame.Surface((WIDTH, WORLD_HEIGHT))
-    map_surface.fill((98, 144, 200))
+    map_surface = pygame.Surface((WIDTH, WORLD_HEIGHT), pygame.SRCALPHA)
+    map_surface.fill((0, 0, 0, 0))
 
     for platform in platforms:
         pygame.draw.rect(map_surface, (160, 160, 160), platform)
@@ -163,12 +166,12 @@ platforms = [
     pygame.Rect(510, WORLD_HEIGHT - 1280, 70, 30), #19
     pygame.Rect(580, WORLD_HEIGHT - 1300, 60, 30), #20
     pygame.Rect(630, WORLD_HEIGHT - 1340, 10, 40), #21
-    pygame.Rect(210, WORLD_HEIGHT - 1500, 100, 30), #22
-    pygame.Rect(410, WORLD_HEIGHT - 1500, 100, 30), #23
-    pygame.Rect(390, WORLD_HEIGHT - 1800, 100, 30), #24
-    pygame.Rect(300, WORLD_HEIGHT - 1650, 170, 30), #25
+    pygame.Rect(190, WORLD_HEIGHT - 1500, 100, 30), #22
+    pygame.Rect(390, WORLD_HEIGHT - 1500, 100, 30), #23
+    pygame.Rect(385, WORLD_HEIGHT - 1790, 80, 30), #24
+    pygame.Rect(280, WORLD_HEIGHT - 1650, 170, 30), #25
     pygame.Rect(450, WORLD_HEIGHT - 2408, 60, 30), #26
-    pygame.Rect(400, WORLD_HEIGHT - 1970, 100, 80), #27
+    pygame.Rect(400, WORLD_HEIGHT - 2050, 50, 130), #27
     pygame.Rect(207, WORLD_HEIGHT - 1970, 100, 80), #28
     pygame.Rect(300, WORLD_HEIGHT - 2128, 150, 80), #29
     pygame.Rect(430, WORLD_HEIGHT - 2408, 20, 280), #30
@@ -176,14 +179,21 @@ platforms = [
     pygame.Rect(220, WORLD_HEIGHT - 2630, 120, 40), #32
     pygame.Rect(500, WORLD_HEIGHT - 2720, 90, 30), #33
     pygame.Rect(360, WORLD_HEIGHT - 2900, 60, 30), #34
-    pygame.Rect(210, WORLD_HEIGHT - 3050, 80, 30), #35
-    pygame.Rect(360, WORLD_HEIGHT - 4000, 20, 800), #36
-    pygame.Rect(150, WORLD_HEIGHT - 3300, 100, 30), #37
-    pygame.Rect(130, WORLD_HEIGHT - 4000, 20, 800), #38
-    pygame.Rect(150, WORLD_HEIGHT - 3450, 100, 30), #39
-    pygame.Rect(215, WORLD_HEIGHT - 3680, 80, 40), #40
-    pygame.Rect(330, WORLD_HEIGHT - 3760, 30, 30), #41
-    pygame.Rect(130, WORLD_HEIGHT - 4000, 120, 120), #42
+    pygame.Rect(600, WORLD_HEIGHT - 3000, 150, 40), #35
+    pygame.Rect(210, WORLD_HEIGHT - 3050, 80, 30), #36
+    pygame.Rect(360, WORLD_HEIGHT - 4000, 20, 800), #37
+    pygame.Rect(150, WORLD_HEIGHT - 3300, 100, 30), #38
+    pygame.Rect(130, WORLD_HEIGHT - 4000, 20, 800), #39
+    pygame.Rect(150, WORLD_HEIGHT - 3450, 100, 30), #40
+    pygame.Rect(215, WORLD_HEIGHT - 3680, 80, 40), #41
+    pygame.Rect(330, WORLD_HEIGHT - 3760, 30, 30), #42
+    pygame.Rect(130, WORLD_HEIGHT - 4000, 120, 120), #43
+    pygame.Rect(0, WORLD_HEIGHT - 4120, 50, 80), #44
+    pygame.Rect(130, WORLD_HEIGHT - 4400, 220, 50), #45
+    pygame.Rect(250, WORLD_HEIGHT - 4600, 400, 40), #46
+    pygame.Rect(420, WORLD_HEIGHT - 4780, 20, 130), #47
+    pygame.Rect(0, WORLD_HEIGHT - 4880, 450, 100), #48
+    pygame.Rect(500, WORLD_HEIGHT - 5080, 200, 40), #49
 ]
 
 export_map_to_png(platforms)
@@ -279,9 +289,14 @@ while running:
         else:
             sliding_cooldown -= 1
             sprite_offset_y = -5
- 
+
+    if player.y < WORLD_HEIGHT - 4200 and player.y > WORLD_HEIGHT - 7000: 
+        icy = True
+    else:
+        icy = False
+
     keys = pygame.key.get_pressed()
- 
+    print(player_vel_x)
     if keys[pygame.K_a] and not jumped and grounded and not stun and not sliding and not charged:
         player_vel_x -= player_speed
         if player_vel_x < -4:
@@ -307,13 +322,25 @@ while running:
             sliding_lenght = 30
             slide_available = False
    
-    if not keys[pygame.K_a] and not keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_a] and keys[pygame.K_d]:
+    if not keys[pygame.K_a] and not keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_a] and keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_SPACE] and grounded and not sliding:
+        if keys[pygame.K_SPACE]:
+            if icy:
+                friction = 0.1
+            else:
+                friction = 10   
+        else:
+            if icy:
+                friction = 0.05 
+                player_speed = 0.1
+            else:
+                friction = 0.3
+                player_speed = 0.6
         if player_vel_x > 0:
-            player_vel_x -= 0.3
+            player_vel_x -= friction
             if player_vel_x < 0:
                 player_vel_x = 0
         elif player_vel_x < 0:
-            player_vel_x += 0.3
+            player_vel_x += friction
             if player_vel_x > 0:
                 player_vel_x = 0
 
@@ -392,18 +419,15 @@ while running:
 
 
     if keys[pygame.K_SPACE] and grounded and not stun and not sliding and jump_available:
-        # Verify player is actually on a platform before allowing jump charge
         on_solid_platform = False
         for p in platforms:
-            # Check if player bottom is at platform top AND player is horizontally over platform
             if player.bottom >= p.top and player.bottom <= p.top + 5 and player_vel_y >= 0:
-                if player.left < p.right and player.right > p.left:  # Horizontal overlap check
+                if player.left < p.right and player.right > p.left:
                     on_solid_platform = True
                     break
         
         if on_solid_platform:
-            sprite_offset_y = -8
-            player_vel_x = 0       
+            sprite_offset_y = -8     
             charged = True
             if keys[pygame.K_a]:
                 jump_left = True
@@ -494,6 +518,14 @@ while running:
     
     skip_collision_this_frame = False
 
+    if sliding and not grounded:
+        sliding = False
+        sliding_lenght = 0
+        sliding_cooldown = 60
+        player.y -= 40
+        player.height = 70
+        sprite_offset_y = -5
+
     animation_timer += animation_speed
     if animation_timer >= 1:
         animation_timer = 0
@@ -543,7 +575,7 @@ while running:
     if facing_right:
         current_image = pygame.transform.flip(current_image, True, False)
  
-    camera_y = player.y - HEIGHT // 2
+    camera_y = player.bottom - HEIGHT // 2 - CAMERA_FOOT_OFFSET
  
     if camera_y < 0:
         camera_y = 0
