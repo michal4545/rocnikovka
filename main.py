@@ -2,17 +2,174 @@ import pygame
 import sys
 import os
 import time
- 
+
 pygame.init()
- 
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+WIDTH, HEIGHT = 1024, 768
+GAME_SURFACE = pygame.Surface((WIDTH, HEIGHT))
+fullscreen = True
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("Samurai")
 icon = pygame.image.load('images/icon.png')
 pygame.display.set_icon(icon)
+
+game_state = "MENU" 
+sound_volume = 0.7
+menu_buttons = {
+    "play": pygame.Rect(350, 250, 324, 80),
+    "settings": pygame.Rect(350, 380, 324, 80),
+    "exit": pygame.Rect(350, 510, 324, 80)
+}
+settings_buttons = {
+    "volume_down": pygame.Rect(300, 200, 80, 60),
+    "volume_up": pygame.Rect(644, 200, 80, 60),
+    "fullscreen_toggle": pygame.Rect(350, 350, 324, 80),
+    "back": pygame.Rect(350, 480, 324, 80)
+}
+
+
+def update_display_metrics():
+    global DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_SCALE, SCALED_WIDTH, SCALED_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y
+    DISPLAY_WIDTH, DISPLAY_HEIGHT = screen.get_size()
+    DISPLAY_SCALE = min(DISPLAY_WIDTH / WIDTH, DISPLAY_HEIGHT / HEIGHT)
+    SCALED_WIDTH = int(WIDTH * DISPLAY_SCALE)
+    SCALED_HEIGHT = int(HEIGHT * DISPLAY_SCALE)
+    DISPLAY_OFFSET_X = (DISPLAY_WIDTH - SCALED_WIDTH) // 2
+    DISPLAY_OFFSET_Y = (DISPLAY_HEIGHT - SCALED_HEIGHT) // 2
+
+update_display_metrics()
+
+def draw_text(text, font, color, surface, x, y):
+    """Helper function to draw text centered at given coordinates"""
+    text_obj = font.render(text, True, color)
+    text_rect = text_obj.get_rect(center=(x, y))
+    surface.blit(text_obj, text_rect)
+
+def draw_button(surface, rect, text, font, is_hovered=False):
+    """Draw a button with text"""
+    color = (100, 200, 255) if is_hovered else (70, 150, 220)
+    border_color = (255, 255, 255) if is_hovered else (100, 100, 100)
+    pygame.draw.rect(surface, color, rect)
+    pygame.draw.rect(surface, border_color, rect, 3)
+    draw_text(text, font, (255, 255, 255), surface, rect.centerx, rect.centery)
+
+def draw_menu(screen, game_surface):
+    """Draw main menu"""
+    game_surface.fill((50, 100, 150))
+    font_large = pygame.font.Font(None, 80)
+    font_button = pygame.font.Font(None, 40)
+    
+    draw_text("SAMURAI", font_large, (255, 200, 100), game_surface, WIDTH // 2, 100)
+    
+    mouse_pos = pygame.mouse.get_pos()
+    mouse_game_pos = (
+        (mouse_pos[0] - DISPLAY_OFFSET_X) / DISPLAY_SCALE,
+        (mouse_pos[1] - DISPLAY_OFFSET_Y) / DISPLAY_SCALE
+    )
+    
+    play_hovered = menu_buttons["play"].collidepoint(mouse_game_pos)
+    settings_hovered = menu_buttons["settings"].collidepoint(mouse_game_pos)
+    exit_hovered = menu_buttons["exit"].collidepoint(mouse_game_pos)
+    
+    draw_button(game_surface, menu_buttons["play"], "PLAY", font_button, play_hovered)
+    draw_button(game_surface, menu_buttons["settings"], "SETTINGS", font_button, settings_hovered)
+    draw_button(game_surface, menu_buttons["exit"], "EXIT", font_button, exit_hovered)
+    
+    scaled_surface = pygame.transform.smoothscale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
+    screen.fill((0, 0, 0))
+    screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
+    pygame.display.flip()
+    
+    return play_hovered, settings_hovered, exit_hovered
+
+def draw_settings(screen, game_surface):
+    """Draw settings menu"""
+    game_surface.fill((50, 100, 150))
+    font_large = pygame.font.Font(None, 60)
+    font_button = pygame.font.Font(None, 35)
+    font_small = pygame.font.Font(None, 30)
+    
+    draw_text("SETTINGS", font_large, (255, 200, 100), game_surface, WIDTH // 2, 80)
+    
+    mouse_pos = pygame.mouse.get_pos()
+    mouse_game_pos = (
+        (mouse_pos[0] - DISPLAY_OFFSET_X) / DISPLAY_SCALE,
+        (mouse_pos[1] - DISPLAY_OFFSET_Y) / DISPLAY_SCALE
+    )
+    
+    # Volume control
+    draw_text(f"VOLUME: {int(sound_volume * 100)}%", font_button, (255, 255, 255), game_surface, WIDTH // 2, 150)
+    
+    vol_down_hovered = settings_buttons["volume_down"].collidepoint(mouse_game_pos)
+    vol_up_hovered = settings_buttons["volume_up"].collidepoint(mouse_game_pos)
+    
+    draw_button(game_surface, settings_buttons["volume_down"], "-", font_button, vol_down_hovered)
+    draw_button(game_surface, settings_buttons["volume_up"], "+", font_button, vol_up_hovered)
+    
+    # Fullscreen toggle
+    fullscreen_text = "FULLSCREEN: ON" if fullscreen else "FULLSCREEN: OFF"
+    fullscreen_hovered = settings_buttons["fullscreen_toggle"].collidepoint(mouse_game_pos)
+    draw_button(game_surface, settings_buttons["fullscreen_toggle"], fullscreen_text, font_button, fullscreen_hovered)
+    
+    # Back button
+    back_hovered = settings_buttons["back"].collidepoint(mouse_game_pos)
+    draw_button(game_surface, settings_buttons["back"], "BACK", font_button, back_hovered)
+    
+    scaled_surface = pygame.transform.smoothscale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
+    screen.fill((0, 0, 0))
+    screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
+    pygame.display.flip()
+    
+    return vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered
+
+def handle_menu_events(play_hovered, settings_hovered, exit_hovered):
+    """Handle menu events, return new game state"""
+    global fullscreen, screen
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return "QUIT"
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if play_hovered:
+                return "GAME"
+            elif settings_hovered:
+                return "SETTINGS"
+            elif exit_hovered:
+                return "QUIT"
+    
+    return "MENU"
+
+def handle_settings_events(vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered):
+    """Handle settings events, return new game state"""
+    global fullscreen, screen, sound_volume
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return "QUIT"
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                return "MENU"
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if vol_down_hovered:
+                sound_volume = max(0, sound_volume - 0.1)
+                return "SETTINGS"
+            elif vol_up_hovered:
+                sound_volume = min(1.0, sound_volume + 0.1)
+                return "SETTINGS"
+            elif fullscreen_hovered:
+                fullscreen = not fullscreen
+                if fullscreen:
+                    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+                update_display_metrics()
+                return "SETTINGS"
+            elif back_hovered:
+                return "MENU"
+    
+    return "SETTINGS"
  
-clock = pygame.time.Clock()
-FPS = 60
+
 
 DEBUG_SHOW_PLATFORM_NUMBERS = True
 DEBUG_SHOW_HITBOX = True
@@ -83,7 +240,7 @@ SPRITE_WIDTH = 68.9
 sprite_offset_x = -10
 sprite_offset_y = -5
  
-player = pygame.Rect(400, WORLD_HEIGHT - 50, 35, 70)
+player = pygame.Rect(512, WORLD_HEIGHT - 50, 35, 70)
 CAMERA_FOOT_OFFSET = 70
 player_color = (255, 255, 255)
 player_speed = 0.6
@@ -144,9 +301,9 @@ def export_map_to_png(platforms, filename="images/level_map.png"):
     pygame.image.save(map_surface, filename)
  
 platforms = [
-    pygame.Rect(0, WORLD_HEIGHT - 50, 800, 50), #0
+    pygame.Rect(0, WORLD_HEIGHT - 50, 1024, 50), #0
     pygame.Rect(-50, 0, 50, 9000), #1
-    pygame.Rect(800, 0, 50, 9000), #2
+    pygame.Rect(1024, 0, 50, 9000), #2
     pygame.Rect(0, WORLD_HEIGHT - 268, 150, 250), #3
     pygame.Rect(320, WORLD_HEIGHT - 295, 120, 50), #4
     pygame.Rect(550, WORLD_HEIGHT - 300, 250, 300), #5
@@ -194,6 +351,7 @@ platforms = [
     pygame.Rect(420, WORLD_HEIGHT - 4780, 20, 130), #47
     pygame.Rect(0, WORLD_HEIGHT - 4880, 450, 100), #48
     pygame.Rect(500, WORLD_HEIGHT - 5080, 200, 40), #49
+    pygame.Rect(100, WORLD_HEIGHT - 5180, 200, 40), #50
 ]
 
 export_map_to_png(platforms)
@@ -229,10 +387,32 @@ if DEBUG_HOT_RELOAD:
         except Exception as e:
             print(f"Failed to reload: {e}")
  
+clock = pygame.time.Clock()
+FPS = 60
+
 running = True
 while running:
     clock.tick(FPS)
     
+    # Menu state handling
+    if game_state == "MENU":
+        play_hovered, settings_hovered, exit_hovered = draw_menu(screen, GAME_SURFACE)
+        new_state = handle_menu_events(play_hovered, settings_hovered, exit_hovered)
+        if new_state == "QUIT":
+            running = False
+        else:
+            game_state = new_state
+        continue
+    elif game_state == "SETTINGS":
+        vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered = draw_settings(screen, GAME_SURFACE)
+        new_state = handle_settings_events(vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered)
+        if new_state == "QUIT":
+            running = False
+        else:
+            game_state = new_state
+        continue
+    
+    # Game state handling
     if DEBUG_HOT_RELOAD:
         try:
             current_time = os.path.getmtime(__file__)
@@ -246,12 +426,24 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+            fullscreen = not fullscreen
+            if fullscreen:
+                screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            else:
+                screen = pygame.display.set_mode((WIDTH, HEIGHT))
+            update_display_metrics()
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            game_state = "MENU"
+            continue
         
         if DEBUG_TELEPORT_ON_CLICK:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = event.pos
-                player.x = mouse_x - player.width // 2
-                player.y = mouse_y + camera_y - player.height // 2
+                game_x = (mouse_x - DISPLAY_OFFSET_X) / DISPLAY_SCALE
+                game_y = (mouse_y - DISPLAY_OFFSET_Y) / DISPLAY_SCALE
+                player.x = int(game_x - player.width // 2)
+                player.y = int(game_y + camera_y - player.height // 2)
                 player_vel_y = 0
                 player_vel_x = 0
                 print(f"Teleported to ({player.x}, {player.y})")
@@ -532,8 +724,8 @@ while running:
         current_frame = (current_frame + 1) % 4
  
     if stun:
-        current_image = player_too_high        
-    elif wall_grab:
+        current_image = player_too_high         
+    elif wall_grab: 
         current_image = wall_grab_image
         if facing_right:
             sprite_offset_x = - 4
@@ -553,7 +745,7 @@ while running:
         current_image = fallframes[current_frame]
         if facing_right:
             sprite_offset_x = -30
-    elif (keys[pygame.K_a] or player_vel_x < - 0.5) or (keys[pygame.K_d] or player_vel_x > 0.5):
+    elif keys[pygame.K_a] and keys[pygame.K_d] or (keys[pygame.K_a] or player_vel_x < - 0.5) or (keys[pygame.K_d] or player_vel_x > 0.5):
         if player_vel_x < 0:
             facing_right = False
             sprite_offset_x = -13
@@ -582,8 +774,8 @@ while running:
     if camera_y > WORLD_HEIGHT - HEIGHT:
         camera_y = WORLD_HEIGHT - HEIGHT
 
-    screen.fill((98, 144, 200))
-    screen.blit(
+    GAME_SURFACE.fill((98, 144, 200))
+    GAME_SURFACE.blit(
         current_image,
         (
             player.x + sprite_offset_x,
@@ -593,20 +785,23 @@ while running:
 
     if DEBUG_SHOW_HITBOX:
         pygame.draw.rect(
-            screen, (255, 0, 0), (player.x, player.y - camera_y, player.width, player.height), 1
+            GAME_SURFACE, (255, 0, 0), (player.x, player.y - camera_y, player.width, player.height), 1
         )
 
     if DEBUG_SHOW_PLATFORM_NUMBERS:
         font = pygame.font.Font(None, 24)
     
     for i, platform in enumerate(platforms):
-        pygame.draw.rect(screen, (160, 160, 160), (platform.x, platform.y - camera_y, platform.width, platform.height))
+        pygame.draw.rect(GAME_SURFACE, (160, 160, 160), (platform.x, platform.y - camera_y, platform.width, platform.height))
         
         if DEBUG_SHOW_PLATFORM_NUMBERS:
             text = font.render(str(i), True, (255, 255, 0))
             text_rect = text.get_rect(center=(platform.centerx, platform.centery - camera_y))
-            screen.blit(text, text_rect)
+            GAME_SURFACE.blit(text, text_rect)
 
+    scaled_surface = pygame.transform.smoothscale(GAME_SURFACE, (SCALED_WIDTH, SCALED_HEIGHT))
+    screen.fill((0, 0, 0))
+    screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
     pygame.display.flip()
 
 
