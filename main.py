@@ -16,16 +16,16 @@ pygame.display.set_icon(icon)
 game_state = "MENU" 
 sound_volume = 0.7
 menu_buttons = {
-    "play": pygame.Rect(350, 250, 324, 80),
-    "settings": pygame.Rect(350, 380, 324, 80),
-    "exit": pygame.Rect(350, 510, 324, 80)
+    "play": pygame.Rect(387, 450, 250, 60),
+    "settings": pygame.Rect(387, 520, 250, 60),
+    "exit": pygame.Rect(387, 590, 250, 60)
 }
 settings_buttons = {
-    "volume_down": pygame.Rect(300, 200, 80, 60),
-    "volume_up": pygame.Rect(644, 200, 80, 60),
     "fullscreen_toggle": pygame.Rect(350, 350, 324, 80),
     "back": pygame.Rect(350, 480, 324, 80)
 }
+slider_rect = pygame.Rect(350, 200, 300, 10)
+dragging_slider = False
 
 
 def update_display_metrics():
@@ -40,24 +40,28 @@ def update_display_metrics():
 update_display_metrics()
 
 def draw_text(text, font, color, surface, x, y):
-    """Helper function to draw text centered at given coordinates"""
-    text_obj = font.render(text, True, color)
+    text_obj = font.render(text, False, color)
     text_rect = text_obj.get_rect(center=(x, y))
     surface.blit(text_obj, text_rect)
 
 def draw_button(surface, rect, text, font, is_hovered=False):
-    """Draw a button with text"""
-    color = (100, 200, 255) if is_hovered else (70, 150, 220)
-    border_color = (255, 255, 255) if is_hovered else (100, 100, 100)
-    pygame.draw.rect(surface, color, rect)
-    pygame.draw.rect(surface, border_color, rect, 3)
-    draw_text(text, font, (255, 255, 255), surface, rect.centerx, rect.centery)
+    if is_hovered:
+        scaled_rect = pygame.Rect(0, 0, int(rect.width * 1.2), int(rect.height * 1.2))
+        scaled_rect.center = rect.center
+        pygame.draw.rect(surface, (0, 0, 0), scaled_rect, border_radius=15)
+        draw_text(text, font, (255, 255, 255), surface, rect.centerx, rect.centery)
+    else:
+        temp_surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+        pygame.draw.rect(temp_surf, (0, 0, 0, 128), temp_surf.get_rect(), border_radius=15)
+        surface.blit(temp_surf, rect.topleft)
+        draw_text(text, font, (255, 255, 255), surface, rect.centerx, rect.centery)
 
 def draw_menu(screen, game_surface):
-    """Draw main menu"""
-    game_surface.fill((50, 100, 150))
-    font_large = pygame.font.Font(None, 80)
-    font_button = pygame.font.Font(None, 40)
+    menu_bg = pygame.image.load('images/MenuBackground.png')
+    menu_bg = pygame.transform.scale(menu_bg, (WIDTH, HEIGHT))
+    game_surface.blit(menu_bg, (0, 0))
+    font_large = pygame.font.Font('Electroharmonix.otf', 80)
+    font_button = pygame.font.Font('Electroharmonix.otf', 40)
     
     draw_text("SAMURAI", font_large, (255, 200, 100), game_surface, WIDTH // 2, 100)
     
@@ -75,7 +79,7 @@ def draw_menu(screen, game_surface):
     draw_button(game_surface, menu_buttons["settings"], "SETTINGS", font_button, settings_hovered)
     draw_button(game_surface, menu_buttons["exit"], "EXIT", font_button, exit_hovered)
     
-    scaled_surface = pygame.transform.smoothscale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
+    scaled_surface = pygame.transform.scale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
     screen.fill((0, 0, 0))
     screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
     pygame.display.flip()
@@ -83,11 +87,11 @@ def draw_menu(screen, game_surface):
     return play_hovered, settings_hovered, exit_hovered
 
 def draw_settings(screen, game_surface):
-    """Draw settings menu"""
-    game_surface.fill((50, 100, 150))
-    font_large = pygame.font.Font(None, 60)
-    font_button = pygame.font.Font(None, 35)
-    font_small = pygame.font.Font(None, 30)
+    menu_bg = pygame.image.load('images/MenuBackground.png')
+    menu_bg = pygame.transform.scale(menu_bg, (WIDTH, HEIGHT))
+    game_surface.blit(menu_bg, (0, 0))
+    font_large = pygame.font.Font('Electroharmonix.otf', 60)
+    font_button = pygame.font.Font('Electroharmonix.otf', 35)
     
     draw_text("SETTINGS", font_large, (255, 200, 100), game_surface, WIDTH // 2, 80)
     
@@ -97,33 +101,28 @@ def draw_settings(screen, game_surface):
         (mouse_pos[1] - DISPLAY_OFFSET_Y) / DISPLAY_SCALE
     )
     
-    # Volume control
     draw_text(f"VOLUME: {int(sound_volume * 100)}%", font_button, (255, 255, 255), game_surface, WIDTH // 2, 150)
     
-    vol_down_hovered = settings_buttons["volume_down"].collidepoint(mouse_game_pos)
-    vol_up_hovered = settings_buttons["volume_up"].collidepoint(mouse_game_pos)
+    knob_x = slider_rect.left + sound_volume * slider_rect.width
+    knob_rect = pygame.Rect(knob_x - 10, slider_rect.centery - 10, 20, 20)
+    pygame.draw.rect(game_surface, (100, 100, 100), slider_rect, border_radius=5)
+    pygame.draw.circle(game_surface, (200, 200, 200), knob_rect.center, 10)
     
-    draw_button(game_surface, settings_buttons["volume_down"], "-", font_button, vol_down_hovered)
-    draw_button(game_surface, settings_buttons["volume_up"], "+", font_button, vol_up_hovered)
-    
-    # Fullscreen toggle
     fullscreen_text = "FULLSCREEN: ON" if fullscreen else "FULLSCREEN: OFF"
     fullscreen_hovered = settings_buttons["fullscreen_toggle"].collidepoint(mouse_game_pos)
     draw_button(game_surface, settings_buttons["fullscreen_toggle"], fullscreen_text, font_button, fullscreen_hovered)
     
-    # Back button
     back_hovered = settings_buttons["back"].collidepoint(mouse_game_pos)
     draw_button(game_surface, settings_buttons["back"], "BACK", font_button, back_hovered)
     
-    scaled_surface = pygame.transform.smoothscale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
+    scaled_surface = pygame.transform.scale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
     screen.fill((0, 0, 0))
     screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
     pygame.display.flip()
     
-    return vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered
+    return fullscreen_hovered, back_hovered
 
 def handle_menu_events(play_hovered, settings_hovered, exit_hovered):
-    """Handle menu events, return new game state"""
     global fullscreen, screen
     
     for event in pygame.event.get():
@@ -139,9 +138,17 @@ def handle_menu_events(play_hovered, settings_hovered, exit_hovered):
     
     return "MENU"
 
-def handle_settings_events(vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered):
-    """Handle settings events, return new game state"""
-    global fullscreen, screen, sound_volume
+def handle_settings_events(fullscreen_hovered, back_hovered):
+    global fullscreen, screen, sound_volume, dragging_slider
+    
+    mouse_pos = pygame.mouse.get_pos()
+    mouse_game_pos = (
+        (mouse_pos[0] - DISPLAY_OFFSET_X) / DISPLAY_SCALE,
+        (mouse_pos[1] - DISPLAY_OFFSET_Y) / DISPLAY_SCALE
+    )
+    
+    knob_x = slider_rect.left + sound_volume * slider_rect.width
+    knob_rect = pygame.Rect(knob_x - 10, slider_rect.centery - 10, 20, 20)
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -150,11 +157,10 @@ def handle_settings_events(vol_down_hovered, vol_up_hovered, fullscreen_hovered,
             if event.key == pygame.K_ESCAPE:
                 return "MENU"
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if vol_down_hovered:
-                sound_volume = max(0, sound_volume - 0.1)
-                return "SETTINGS"
-            elif vol_up_hovered:
-                sound_volume = min(1.0, sound_volume + 0.1)
+            if knob_rect.collidepoint(mouse_game_pos) or slider_rect.collidepoint(mouse_game_pos):
+                dragging_slider = True
+                rel_x = mouse_game_pos[0] - slider_rect.left
+                sound_volume = max(0, min(1, rel_x / slider_rect.width))
                 return "SETTINGS"
             elif fullscreen_hovered:
                 fullscreen = not fullscreen
@@ -166,13 +172,19 @@ def handle_settings_events(vol_down_hovered, vol_up_hovered, fullscreen_hovered,
                 return "SETTINGS"
             elif back_hovered:
                 return "MENU"
+        elif event.type == pygame.MOUSEMOTION:
+            if dragging_slider:
+                rel_x = mouse_game_pos[0] - slider_rect.left
+                sound_volume = max(0, min(1, rel_x / slider_rect.width))
+        elif event.type == pygame.MOUSEBUTTONUP:
+            dragging_slider = False
     
     return "SETTINGS"
  
 
 
 DEBUG_SHOW_PLATFORM_NUMBERS = True
-DEBUG_SHOW_HITBOX = True
+DEBUG_SHOW_HITBOX = False
 DEBUG_HOT_RELOAD = True
 DEBUG_TELEPORT_ON_CLICK = True
  
@@ -393,8 +405,6 @@ FPS = 60
 running = True
 while running:
     clock.tick(FPS)
-    
-    # Menu state handling
     if game_state == "MENU":
         play_hovered, settings_hovered, exit_hovered = draw_menu(screen, GAME_SURFACE)
         new_state = handle_menu_events(play_hovered, settings_hovered, exit_hovered)
@@ -404,15 +414,14 @@ while running:
             game_state = new_state
         continue
     elif game_state == "SETTINGS":
-        vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered = draw_settings(screen, GAME_SURFACE)
-        new_state = handle_settings_events(vol_down_hovered, vol_up_hovered, fullscreen_hovered, back_hovered)
+        fullscreen_hovered, back_hovered = draw_settings(screen, GAME_SURFACE)
+        new_state = handle_settings_events(fullscreen_hovered, back_hovered)
         if new_state == "QUIT":
             running = False
         else:
             game_state = new_state
         continue
     
-    # Game state handling
     if DEBUG_HOT_RELOAD:
         try:
             current_time = os.path.getmtime(__file__)
@@ -488,7 +497,7 @@ while running:
         icy = False
 
     keys = pygame.key.get_pressed()
-    print(player_vel_x)
+    print(jump_cooldown)
     if keys[pygame.K_a] and not jumped and grounded and not stun and not sliding and not charged:
         player_vel_x -= player_speed
         if player_vel_x < -4:
@@ -519,7 +528,7 @@ while running:
             if icy:
                 friction = 0.1
             else:
-                friction = 10   
+                friction = 10
         else:
             if icy:
                 friction = 0.05 
@@ -535,9 +544,12 @@ while running:
             player_vel_x += friction
             if player_vel_x > 0:
                 player_vel_x = 0
+        if player.x == player_x_before:
+            player_vel_x = 0
 
     player_x_before = player.x
     player.x += player_vel_x
+    print(player_vel_x)
  
     for platform in platforms:
         if player.colliderect(platform):
@@ -795,11 +807,11 @@ while running:
         pygame.draw.rect(GAME_SURFACE, (160, 160, 160), (platform.x, platform.y - camera_y, platform.width, platform.height))
         
         if DEBUG_SHOW_PLATFORM_NUMBERS:
-            text = font.render(str(i), True, (255, 255, 0))
+            text = font.render(str(i), False, (255, 255, 0))
             text_rect = text.get_rect(center=(platform.centerx, platform.centery - camera_y))
             GAME_SURFACE.blit(text, text_rect)
 
-    scaled_surface = pygame.transform.smoothscale(GAME_SURFACE, (SCALED_WIDTH, SCALED_HEIGHT))
+    scaled_surface = pygame.transform.scale(GAME_SURFACE, (SCALED_WIDTH, SCALED_HEIGHT))
     screen.fill((0, 0, 0))
     screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
     pygame.display.flip()
