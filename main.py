@@ -461,8 +461,11 @@ platforms = [
     pygame.Rect(250, WORLD_HEIGHT - 4600, 400, 40), #47
     pygame.Rect(420, WORLD_HEIGHT - 4780, 20, 130), #48
     pygame.Rect(0, WORLD_HEIGHT - 4880, 450, 100), #49
-    pygame.Rect(500, WORLD_HEIGHT - 5080, 200, 40), #50
+    pygame.Rect(600, WORLD_HEIGHT - 5060, 200, 40), #50
     pygame.Rect(100, WORLD_HEIGHT - 5180, 200, 40), #51
+    pygame.Rect(550, WORLD_HEIGHT - 5320, 250, 40), #52
+    pygame.Rect(900, WORLD_HEIGHT - 5360, 50, 100), #53 
+    pygame.Rect(250, WORLD_HEIGHT - 5580, 200, 80), #54
 ]
 
 export_map_to_png(platforms)
@@ -598,7 +601,7 @@ while running:
             sliding_cooldown -= 1
             sprite_offset_y = -5
 
-    if player.y < WORLD_HEIGHT - 4200 and player.y > WORLD_HEIGHT - 7000: 
+    if player.y < WORLD_HEIGHT - 4200 and player.y > WORLD_HEIGHT - 5400: 
         icy = True
     else:
         icy = False
