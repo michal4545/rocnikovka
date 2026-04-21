@@ -18,14 +18,23 @@ sound_volume = 0.7
 menu_buttons = {
     "play": pygame.Rect(387, 450, 250, 60),
     "settings": pygame.Rect(387, 520, 250, 60),
-    "exit": pygame.Rect(387, 590, 250, 60)
+    "controls": pygame.Rect(387, 590, 250, 60),
+    "exit": pygame.Rect(387, 660, 250, 60)
 }
 settings_buttons = {
     "fullscreen_toggle": pygame.Rect(350, 350, 324, 80),
     "back": pygame.Rect(350, 480, 324, 80)
 }
+controls_buttons = {
+    "back": pygame.Rect(387, 660, 250, 60)
+}
 slider_rect = pygame.Rect(350, 200, 300, 10)
 dragging_slider = False
+
+background_image = pygame.image.load("images/background.png").convert()
+platforms_image = pygame.image.load("images/platforms.png").convert_alpha()
+menu_background_image = pygame.image.load("images/MenuBackground.png").convert()
+menu_background_image = pygame.transform.scale(menu_background_image, (WIDTH, HEIGHT))
 
 
 def update_display_metrics():
@@ -56,10 +65,38 @@ def draw_button(surface, rect, text, font, is_hovered=False):
         surface.blit(temp_surf, rect.topleft)
         draw_text(text, font, (255, 255, 255), surface, rect.centerx, rect.centery)
 
+
+def background(surface, camera_y):
+    bg_width, bg_height = background_image.get_size()
+    if bg_width <= 0 or bg_height <= 0:
+        surface.fill((0, 0, 0))
+        return
+
+    first_tile_top_world_y = WORLD_HEIGHT - bg_height
+    while first_tile_top_world_y > camera_y:
+        first_tile_top_world_y -= bg_height
+
+    start_y = int(first_tile_top_world_y - camera_y)
+    for y in range(start_y, HEIGHT, bg_height):
+        for x in range(0, WIDTH, bg_width):
+            surface.blit(background_image, (x, y))
+
+def draw_platforms(surface, camera_y):
+    overlay_width, overlay_height = platforms_image.get_size()
+    if overlay_width <= 0 or overlay_height <= 0:
+        return
+
+    first_tile_top_world_y = WORLD_HEIGHT - overlay_height
+    while first_tile_top_world_y > camera_y:
+        first_tile_top_world_y -= overlay_height
+
+    start_y = int(first_tile_top_world_y - camera_y)
+    for y in range(start_y, HEIGHT, overlay_height):
+        for x in range(0, WIDTH, overlay_width):
+            surface.blit(platforms_image, (x, y))
+
 def draw_menu(screen, game_surface):
-    menu_bg = pygame.image.load('images/MenuBackground.png')
-    menu_bg = pygame.transform.scale(menu_bg, (WIDTH, HEIGHT))
-    game_surface.blit(menu_bg, (0, 0))
+    game_surface.blit(menu_background_image, (0, 0))
     font_large = pygame.font.Font('Electroharmonix.otf', 80)
     font_button = pygame.font.Font('Electroharmonix.otf', 40)
     
@@ -73,10 +110,12 @@ def draw_menu(screen, game_surface):
     
     play_hovered = menu_buttons["play"].collidepoint(mouse_game_pos)
     settings_hovered = menu_buttons["settings"].collidepoint(mouse_game_pos)
+    controls_hovered = menu_buttons["controls"].collidepoint(mouse_game_pos)
     exit_hovered = menu_buttons["exit"].collidepoint(mouse_game_pos)
     
     draw_button(game_surface, menu_buttons["play"], "PLAY", font_button, play_hovered)
     draw_button(game_surface, menu_buttons["settings"], "SETTINGS", font_button, settings_hovered)
+    draw_button(game_surface, menu_buttons["controls"], "CONTROLS", font_button, controls_hovered)
     draw_button(game_surface, menu_buttons["exit"], "EXIT", font_button, exit_hovered)
     
     scaled_surface = pygame.transform.scale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
@@ -84,12 +123,54 @@ def draw_menu(screen, game_surface):
     screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
     pygame.display.flip()
     
-    return play_hovered, settings_hovered, exit_hovered
+    return play_hovered, settings_hovered, controls_hovered, exit_hovered
+
+
+def draw_controls(screen, game_surface):
+    game_surface.blit(menu_background_image, (0, 0))
+    font_large = pygame.font.Font('Electroharmonix.otf', 60)
+    font_text = pygame.font.SysFont('MS Gothic', 28)
+    font_button = pygame.font.Font('Electroharmonix.otf', 40)
+
+    draw_text("CONTROLS", font_large, (255, 200, 100), game_surface, WIDTH // 2, 90)
+
+    controls_lines = [
+        "MOVE LEFT/RIGHT: A / D",
+        "",
+        "JUMP (HOLD TO CHARGE): SPACE",
+        "",
+        "WALL JUMP: HOLD SPACE WHILE FLYING UP BEFORE TOUCHING A WALL",
+        "THEN RELEASE TO JUMP OFF THE WALL",
+        "",
+        "SLIDE: C",
+        "",
+        "TOGGLE FULLSCREEN: F11",
+        "OPEN MENU: ESC"
+    ]
+
+    start_y = 200
+    line_spacing = 30
+    for i, line in enumerate(controls_lines):
+        draw_text(line, font_text, (255, 255, 255), game_surface, WIDTH // 2, start_y + i * line_spacing)
+
+    mouse_pos = pygame.mouse.get_pos()
+    mouse_game_pos = (
+        (mouse_pos[0] - DISPLAY_OFFSET_X) / DISPLAY_SCALE,
+        (mouse_pos[1] - DISPLAY_OFFSET_Y) / DISPLAY_SCALE
+    )
+
+    back_hovered = controls_buttons["back"].collidepoint(mouse_game_pos)
+    draw_button(game_surface, controls_buttons["back"], "BACK", font_button, back_hovered)
+
+    scaled_surface = pygame.transform.scale(game_surface, (SCALED_WIDTH, SCALED_HEIGHT))
+    screen.fill((0, 0, 0))
+    screen.blit(scaled_surface, (DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y))
+    pygame.display.flip()
+
+    return back_hovered
 
 def draw_settings(screen, game_surface):
-    menu_bg = pygame.image.load('images/MenuBackground.png')
-    menu_bg = pygame.transform.scale(menu_bg, (WIDTH, HEIGHT))
-    game_surface.blit(menu_bg, (0, 0))
+    game_surface.blit(menu_background_image, (0, 0))
     font_large = pygame.font.Font('Electroharmonix.otf', 60)
     font_button = pygame.font.Font('Electroharmonix.otf', 35)
     
@@ -122,7 +203,7 @@ def draw_settings(screen, game_surface):
     
     return fullscreen_hovered, back_hovered
 
-def handle_menu_events(play_hovered, settings_hovered, exit_hovered):
+def handle_menu_events(play_hovered, settings_hovered, controls_hovered, exit_hovered):
     global fullscreen, screen
     
     for event in pygame.event.get():
@@ -133,6 +214,8 @@ def handle_menu_events(play_hovered, settings_hovered, exit_hovered):
                 return "GAME"
             elif settings_hovered:
                 return "SETTINGS"
+            elif controls_hovered:
+                return "CONTROLS"
             elif exit_hovered:
                 return "QUIT"
     
@@ -180,11 +263,26 @@ def handle_settings_events(fullscreen_hovered, back_hovered):
             dragging_slider = False
     
     return "SETTINGS"
+
+
+def handle_controls_events(back_hovered):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return "QUIT"
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                return "MENU"
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if back_hovered:
+                return "MENU"
+
+    return "CONTROLS"
  
 
 
-DEBUG_SHOW_PLATFORM_NUMBERS = True
+DEBUG_SHOW_PLATFORM_NUMBERS = False
 DEBUG_SHOW_HITBOX = False
+DEBUG_SHOW_PLATFORM_COLLIDERS = False
 DEBUG_HOT_RELOAD = True
 DEBUG_TELEPORT_ON_CLICK = True
  
@@ -302,7 +400,7 @@ player_vel_x_before = 0
    
 camera_y = 0
 
-def export_map_to_png(platforms, filename="images/level_map.png"):
+def export_map_to_png(platforms, filename="images/level.png"):
     map_surface = pygame.Surface((WIDTH, WORLD_HEIGHT), pygame.SRCALPHA)
     map_surface.fill((0, 0, 0, 0))
 
@@ -317,53 +415,54 @@ platforms = [
     pygame.Rect(-50, 0, 50, 9000), #1
     pygame.Rect(1024, 0, 50, 9000), #2
     pygame.Rect(0, WORLD_HEIGHT - 268, 150, 250), #3
-    pygame.Rect(320, WORLD_HEIGHT - 295, 120, 50), #4
-    pygame.Rect(550, WORLD_HEIGHT - 300, 250, 300), #5
-    pygame.Rect(250, WORLD_HEIGHT - 940, 50, 60), #6
-    pygame.Rect(0, WORLD_HEIGHT - 1050, 90, 50), #7
-    pygame.Rect(720, WORLD_HEIGHT - 500, 80, 200), #8
-    pygame.Rect(680, WORLD_HEIGHT - 500, 40, 30), #9
-    pygame.Rect(300, WORLD_HEIGHT - 550, 230, 30), #10
-    pygame.Rect(300, WORLD_HEIGHT - 940, 20, 400), #11
-    pygame.Rect(300, WORLD_HEIGHT - 1200, 20, 100), #12
-    pygame.Rect(580, WORLD_HEIGHT - 1300, 20, 650), #13
-    pygame.Rect(320, WORLD_HEIGHT - 650, 60, 100), #14
-    pygame.Rect(520, WORLD_HEIGHT - 770, 60, 30), #15
-    pygame.Rect(320, WORLD_HEIGHT - 890, 60, 30), #16
-    pygame.Rect(540, WORLD_HEIGHT - 1010, 60, 30), #17
-    pygame.Rect(250, WORLD_HEIGHT - 1200, 70, 30), #18
-    pygame.Rect(510, WORLD_HEIGHT - 1280, 70, 30), #19
-    pygame.Rect(580, WORLD_HEIGHT - 1300, 60, 30), #20
-    pygame.Rect(630, WORLD_HEIGHT - 1340, 10, 40), #21
-    pygame.Rect(190, WORLD_HEIGHT - 1500, 100, 30), #22
-    pygame.Rect(390, WORLD_HEIGHT - 1500, 100, 30), #23
-    pygame.Rect(385, WORLD_HEIGHT - 1790, 80, 30), #24
-    pygame.Rect(280, WORLD_HEIGHT - 1650, 170, 30), #25
-    pygame.Rect(450, WORLD_HEIGHT - 2408, 60, 30), #26
-    pygame.Rect(400, WORLD_HEIGHT - 2050, 50, 130), #27
-    pygame.Rect(207, WORLD_HEIGHT - 1970, 100, 80), #28
-    pygame.Rect(300, WORLD_HEIGHT - 2128, 150, 80), #29
-    pygame.Rect(430, WORLD_HEIGHT - 2408, 20, 280), #30
-    pygame.Rect(320, WORLD_HEIGHT - 2355, 20, 30), #31
-    pygame.Rect(220, WORLD_HEIGHT - 2630, 120, 40), #32
-    pygame.Rect(500, WORLD_HEIGHT - 2720, 90, 30), #33
-    pygame.Rect(360, WORLD_HEIGHT - 2900, 60, 30), #34
-    pygame.Rect(600, WORLD_HEIGHT - 3000, 150, 40), #35
-    pygame.Rect(210, WORLD_HEIGHT - 3050, 80, 30), #36
-    pygame.Rect(360, WORLD_HEIGHT - 4000, 20, 800), #37
-    pygame.Rect(150, WORLD_HEIGHT - 3300, 100, 30), #38
-    pygame.Rect(130, WORLD_HEIGHT - 4000, 20, 800), #39
-    pygame.Rect(150, WORLD_HEIGHT - 3450, 100, 30), #40
-    pygame.Rect(215, WORLD_HEIGHT - 3680, 80, 40), #41
-    pygame.Rect(330, WORLD_HEIGHT - 3760, 30, 30), #42
-    pygame.Rect(130, WORLD_HEIGHT - 4000, 120, 120), #43
-    pygame.Rect(0, WORLD_HEIGHT - 4120, 50, 80), #44
-    pygame.Rect(130, WORLD_HEIGHT - 4400, 220, 50), #45
-    pygame.Rect(250, WORLD_HEIGHT - 4600, 400, 40), #46
-    pygame.Rect(420, WORLD_HEIGHT - 4780, 20, 130), #47
-    pygame.Rect(0, WORLD_HEIGHT - 4880, 450, 100), #48
-    pygame.Rect(500, WORLD_HEIGHT - 5080, 200, 40), #49
-    pygame.Rect(100, WORLD_HEIGHT - 5180, 200, 40), #50
+    pygame.Rect(320, WORLD_HEIGHT - 295, 300, 50), #4
+    pygame.Rect(650, WORLD_HEIGHT - 535, 100, 30), #5
+    pygame.Rect(775, WORLD_HEIGHT - 300, 250, 300), #6
+    pygame.Rect(250, WORLD_HEIGHT - 940, 50, 60), #7
+    pygame.Rect(0, WORLD_HEIGHT - 1050, 90, 50), #8
+    pygame.Rect(945, WORLD_HEIGHT - 500, 80, 200), #9
+    pygame.Rect(905, WORLD_HEIGHT - 500, 40, 30), #10
+    pygame.Rect(300, WORLD_HEIGHT - 550, 230, 30), #11
+    pygame.Rect(300, WORLD_HEIGHT - 940, 20, 400), #12
+    pygame.Rect(300, WORLD_HEIGHT - 1200, 20, 100), #13
+    pygame.Rect(580, WORLD_HEIGHT - 1300, 20, 650), #14
+    pygame.Rect(320, WORLD_HEIGHT - 650, 60, 100), #15
+    pygame.Rect(520, WORLD_HEIGHT - 770, 60, 30), #16
+    pygame.Rect(320, WORLD_HEIGHT - 890, 60, 30), #17
+    pygame.Rect(540, WORLD_HEIGHT - 1010, 60, 30), #18
+    pygame.Rect(250, WORLD_HEIGHT - 1200, 70, 30), #19
+    pygame.Rect(510, WORLD_HEIGHT - 1280, 70, 30), #20
+    pygame.Rect(580, WORLD_HEIGHT - 1300, 60, 30), #21
+    pygame.Rect(630, WORLD_HEIGHT - 1340, 10, 40), #22
+    pygame.Rect(190, WORLD_HEIGHT - 1500, 100, 30), #23
+    pygame.Rect(390, WORLD_HEIGHT - 1500, 100, 30), #24
+    pygame.Rect(385, WORLD_HEIGHT - 1790, 80, 30), #25
+    pygame.Rect(280, WORLD_HEIGHT - 1650, 170, 30), #26
+    pygame.Rect(450, WORLD_HEIGHT - 2408, 60, 30), #27
+    pygame.Rect(400, WORLD_HEIGHT - 2050, 50, 130), #28
+    pygame.Rect(207, WORLD_HEIGHT - 1970, 100, 80), #29
+    pygame.Rect(300, WORLD_HEIGHT - 2128, 150, 80), #30
+    pygame.Rect(430, WORLD_HEIGHT - 2408, 20, 280), #31
+    pygame.Rect(320, WORLD_HEIGHT - 2355, 20, 30), #32
+    pygame.Rect(220, WORLD_HEIGHT - 2630, 120, 40), #33
+    pygame.Rect(500, WORLD_HEIGHT - 2720, 90, 30), #34
+    pygame.Rect(360, WORLD_HEIGHT - 2900, 60, 30), #35
+    pygame.Rect(600, WORLD_HEIGHT - 3000, 150, 40), #36
+    pygame.Rect(210, WORLD_HEIGHT - 3050, 80, 30), #37
+    pygame.Rect(360, WORLD_HEIGHT - 4000, 20, 800), #38
+    pygame.Rect(150, WORLD_HEIGHT - 3300, 100, 30), #39
+    pygame.Rect(130, WORLD_HEIGHT - 4000, 20, 800), #40
+    pygame.Rect(150, WORLD_HEIGHT - 3450, 100, 30), #41
+    pygame.Rect(215, WORLD_HEIGHT - 3680, 80, 40), #42
+    pygame.Rect(330, WORLD_HEIGHT - 3760, 30, 30), #43
+    pygame.Rect(130, WORLD_HEIGHT - 4000, 120, 120), #44
+    pygame.Rect(0, WORLD_HEIGHT - 4120, 50, 80), #45
+    pygame.Rect(130, WORLD_HEIGHT - 4400, 220, 50), #46
+    pygame.Rect(250, WORLD_HEIGHT - 4600, 400, 40), #47
+    pygame.Rect(420, WORLD_HEIGHT - 4780, 20, 130), #48
+    pygame.Rect(0, WORLD_HEIGHT - 4880, 450, 100), #49
+    pygame.Rect(500, WORLD_HEIGHT - 5080, 200, 40), #50
+    pygame.Rect(100, WORLD_HEIGHT - 5180, 200, 40), #51
 ]
 
 export_map_to_png(platforms)
@@ -406,8 +505,8 @@ running = True
 while running:
     clock.tick(FPS)
     if game_state == "MENU":
-        play_hovered, settings_hovered, exit_hovered = draw_menu(screen, GAME_SURFACE)
-        new_state = handle_menu_events(play_hovered, settings_hovered, exit_hovered)
+        play_hovered, settings_hovered, controls_hovered, exit_hovered = draw_menu(screen, GAME_SURFACE)
+        new_state = handle_menu_events(play_hovered, settings_hovered, controls_hovered, exit_hovered)
         if new_state == "QUIT":
             running = False
         else:
@@ -416,6 +515,14 @@ while running:
     elif game_state == "SETTINGS":
         fullscreen_hovered, back_hovered = draw_settings(screen, GAME_SURFACE)
         new_state = handle_settings_events(fullscreen_hovered, back_hovered)
+        if new_state == "QUIT":
+            running = False
+        else:
+            game_state = new_state
+        continue
+    elif game_state == "CONTROLS":
+        back_hovered = draw_controls(screen, GAME_SURFACE)
+        new_state = handle_controls_events(back_hovered)
         if new_state == "QUIT":
             running = False
         else:
@@ -523,7 +630,7 @@ while running:
             sliding_lenght = 30
             slide_available = False
    
-    if not keys[pygame.K_a] and not keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_a] and keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_SPACE] and grounded and not sliding:
+    if not keys[pygame.K_a] and not keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_a] and keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_SPACE] and grounded and not sliding and jump_cooldown <= 0:
         if keys[pygame.K_SPACE]:
             if icy:
                 friction = 0.1
@@ -786,7 +893,7 @@ while running:
     if camera_y > WORLD_HEIGHT - HEIGHT:
         camera_y = WORLD_HEIGHT - HEIGHT
 
-    GAME_SURFACE.fill((98, 144, 200))
+    background(GAME_SURFACE, camera_y)
     GAME_SURFACE.blit(
         current_image,
         (
@@ -804,12 +911,15 @@ while running:
         font = pygame.font.Font(None, 24)
     
     for i, platform in enumerate(platforms):
-        pygame.draw.rect(GAME_SURFACE, (160, 160, 160), (platform.x, platform.y - camera_y, platform.width, platform.height))
+        if DEBUG_SHOW_PLATFORM_COLLIDERS:
+            pygame.draw.rect(GAME_SURFACE, (160, 160, 160), (platform.x, platform.y - camera_y, platform.width, platform.height))
         
         if DEBUG_SHOW_PLATFORM_NUMBERS:
             text = font.render(str(i), False, (255, 255, 0))
             text_rect = text.get_rect(center=(platform.centerx, platform.centery - camera_y))
             GAME_SURFACE.blit(text, text_rect)
+
+    draw_platforms(GAME_SURFACE, camera_y)
 
     scaled_surface = pygame.transform.scale(GAME_SURFACE, (SCALED_WIDTH, SCALED_HEIGHT))
     screen.fill((0, 0, 0))
