@@ -1,3 +1,4 @@
+#imports
 import pygame
 import sys
 import os
@@ -5,6 +6,7 @@ import time
 
 pygame.init()
 
+#window
 WIDTH, HEIGHT = 1024, 768
 GAME_SURFACE = pygame.Surface((WIDTH, HEIGHT))
 fullscreen = True
@@ -13,6 +15,7 @@ pygame.display.set_caption("Samurai")
 icon = pygame.image.load('images/icon.png')
 pygame.display.set_icon(icon)
 
+#game state & ui layout
 game_state = "MENU" 
 sound_volume = 0.7
 menu_buttons = {
@@ -31,12 +34,18 @@ controls_buttons = {
 slider_rect = pygame.Rect(350, 200, 300, 10)
 dragging_slider = False
 
+#images
 background_image = pygame.image.load("images/background.png").convert()
 platforms_image = pygame.image.load("images/platforms.png").convert_alpha()
 menu_background_image = pygame.image.load("images/MenuBackground.png").convert()
 menu_background_image = pygame.transform.scale(menu_background_image, (WIDTH, HEIGHT))
 
+#sounds
+jump_sound = pygame.mixer.Sound("sounds/jump.wav")
+hit_sound = pygame.mixer.Sound("sounds/hit.wav")
+vine_boom_sound = pygame.mixer.Sound("sounds/vineboom.WAV")
 
+#helper functions
 def update_display_metrics():
     global DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_SCALE, SCALED_WIDTH, SCALED_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y
     DISPLAY_WIDTH, DISPLAY_HEIGHT = screen.get_size()
@@ -95,6 +104,7 @@ def draw_platforms(surface, camera_y):
         for x in range(0, WIDTH, overlay_width):
             surface.blit(platforms_image, (x, y))
 
+#menu draw functions
 def draw_menu(screen, game_surface):
     game_surface.blit(menu_background_image, (0, 0))
     font_large = pygame.font.Font('Electroharmonix.otf', 80)
@@ -280,6 +290,7 @@ def handle_controls_events(back_hovered):
  
 
 
+#debug flags
 DEBUG_SHOW_PLATFORM_NUMBERS = False
 DEBUG_SHOW_HITBOX = False
 DEBUG_SHOW_PLATFORM_COLLIDERS = False
@@ -288,6 +299,7 @@ DEBUG_TELEPORT_ON_CLICK = True
  
 WORLD_HEIGHT = 9000
  
+#player sprites
 sprite_sheet = pygame.image.load("images/player_sprite.png").convert_alpha()
 sprite_run = pygame.image.load("images/player_run_sprite.png").convert_alpha()
 sprite_fly = pygame.image.load("images/player_fly_sprite.png").convert_alpha()
@@ -341,6 +353,7 @@ for i in range(4):
     frame = pygame.transform.scale(frame, (93, 75))
     slideframes.append(frame)
  
+#animation state
 current_frame = 0
 animation_speed = 0.12
 animation_timer = 0
@@ -350,11 +363,13 @@ SPRITE_WIDTH = 68.9
 sprite_offset_x = -10
 sprite_offset_y = -5
  
+#player state
 player = pygame.Rect(512, WORLD_HEIGHT - 50, 35, 70)
 CAMERA_FOOT_OFFSET = 70
 player_color = (255, 255, 255)
 player_speed = 0.6
 
+#jump variables
 jump_power = 0
 jump_max = 15.1
 side_jump = 8
@@ -366,11 +381,13 @@ jumped = False
 charged = False
 jump_space_released = False
 
+#slide variables
 sliding = False
 slide_available = True
 sliding_lenght = 0
 sliding_cooldown = 0
 
+#wall grab variables
 wall_grab = False
 wall_grab_available = True
 wall_jump_cooldown = 0
@@ -378,6 +395,7 @@ touching_wall_left = False
 touching_wall_right = False
 skip_collision_this_frame = False
 
+#stun & grounded state
 stun = False
 stun_cooldown = 0
 
@@ -392,6 +410,7 @@ MIN_PLATFORM_HEIGHT = 80
 friction = 0.3
 icy = False
 
+#physics
 player_vel_x = 0
 player_vel_y = 0
 gravity = 0.5
@@ -400,6 +419,7 @@ player_vel_x_before = 0
    
 camera_y = 0
 
+#map export
 def export_map_to_png(platforms, filename="images/level.png"):
     map_surface = pygame.Surface((WIDTH, WORLD_HEIGHT), pygame.SRCALPHA)
     map_surface.fill((0, 0, 0, 0))
@@ -410,6 +430,7 @@ def export_map_to_png(platforms, filename="images/level.png"):
 
     pygame.image.save(map_surface, filename)
  
+#platforms
 platforms = [
     pygame.Rect(0, WORLD_HEIGHT - 50, 1024, 50), #0
     pygame.Rect(-50, 0, 50, 9000), #1
@@ -443,7 +464,7 @@ platforms = [
     pygame.Rect(207, WORLD_HEIGHT - 1970, 100, 80), #29
     pygame.Rect(300, WORLD_HEIGHT - 2128, 150, 80), #30
     pygame.Rect(430, WORLD_HEIGHT - 2408, 20, 280), #31
-    pygame.Rect(320, WORLD_HEIGHT - 2355, 20, 30), #32
+    pygame.Rect(320, WORLD_HEIGHT - 2347, 20, 30), #32v
     pygame.Rect(220, WORLD_HEIGHT - 2630, 120, 40), #33
     pygame.Rect(500, WORLD_HEIGHT - 2720, 90, 30), #34
     pygame.Rect(360, WORLD_HEIGHT - 2900, 60, 30), #35
@@ -462,14 +483,34 @@ platforms = [
     pygame.Rect(420, WORLD_HEIGHT - 4780, 20, 130), #48
     pygame.Rect(0, WORLD_HEIGHT - 4880, 450, 100), #49
     pygame.Rect(600, WORLD_HEIGHT - 5060, 200, 40), #50
-    pygame.Rect(100, WORLD_HEIGHT - 5180, 200, 40), #51
+    pygame.Rect(640, WORLD_HEIGHT - 4800, 200, 40), #51
     pygame.Rect(550, WORLD_HEIGHT - 5320, 250, 40), #52
     pygame.Rect(900, WORLD_HEIGHT - 5360, 50, 100), #53 
-    pygame.Rect(250, WORLD_HEIGHT - 5580, 200, 80), #54
+    pygame.Rect(50, WORLD_HEIGHT - 5680, 400, 160), #54
+    pygame.Rect(550, WORLD_HEIGHT - 5680, 200, 80), #55
+    pygame.Rect(750, WORLD_HEIGHT - 5900, 100, 60), #56
+    pygame.Rect(925, WORLD_HEIGHT - 5900, 100, 60), #57
+    pygame.Rect(750, WORLD_HEIGHT - 6055, 200, 80), #58
+    pygame.Rect(550, WORLD_HEIGHT - 6020, 100, 50), #59
+    pygame.Rect(250, WORLD_HEIGHT - 6200, 200, 80), #60
+    pygame.Rect(550, WORLD_HEIGHT - 6340, 285, 120), #61
+    pygame.Rect(200, WORLD_HEIGHT - 6430, 300, 140), #62
+    pygame.Rect(550, WORLD_HEIGHT - 6420, 200, 80), #63
+    pygame.Rect(45, WORLD_HEIGHT - 6580, 60, 40), #64
+    pygame.Rect(220, WORLD_HEIGHT - 6700, 100, 40), #65
+    pygame.Rect(450, WORLD_HEIGHT - 6700, 80, 40), #66
+    pygame.Rect(760, WORLD_HEIGHT - 6700, 80, 30), #67
+    pygame.Rect(945, WORLD_HEIGHT - 6900, 80, 30), #68
+    pygame.Rect(820, WORLD_HEIGHT - 7090, 120, 50), #69
+    pygame.Rect(480, WORLD_HEIGHT - 7090, 120, 50), #70
+    pygame.Rect(320, WORLD_HEIGHT - 7300, 210, 60), #71
+    pygame.Rect(600, WORLD_HEIGHT - 7300, 60, 60), #72
+
 ]
 
 export_map_to_png(platforms)
 
+#hot reload
 if DEBUG_HOT_RELOAD:
     last_modified_time = os.path.getmtime(__file__)
     
@@ -501,12 +542,14 @@ if DEBUG_HOT_RELOAD:
         except Exception as e:
             print(f"Failed to reload: {e}")
  
+#game loop
 clock = pygame.time.Clock()
 FPS = 60
 
 running = True
 while running:
     clock.tick(FPS)
+    #menu states
     if game_state == "MENU":
         play_hovered, settings_hovered, controls_hovered, exit_hovered = draw_menu(screen, GAME_SURFACE)
         new_state = handle_menu_events(play_hovered, settings_hovered, controls_hovered, exit_hovered)
@@ -542,6 +585,7 @@ while running:
         except:
             pass
  
+    #events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -567,6 +611,7 @@ while running:
                 player_vel_x = 0
                 print(f"Teleported to ({player.x}, {player.y})")
 
+    #cooldowns
     if not jump_available and grounded:
         if jump_cooldown <= 0:
             jump_cooldown = 0
@@ -606,6 +651,7 @@ while running:
     else:
         icy = False
 
+    #input
     keys = pygame.key.get_pressed()
     print(jump_cooldown)
     if keys[pygame.K_a] and not jumped and grounded and not stun and not sliding and not charged:
@@ -676,6 +722,7 @@ while running:
                     sprite_offset_x = -20
                     facing_right = True
 
+    #wall touch detection
     touching_wall_left = False
     touching_wall_right = False
 
@@ -687,6 +734,7 @@ while running:
                 if abs(player.left - platform.right) <= 2:
                     touching_wall_left = True
 
+    #wall grab & jump logic
     if jumped and not keys[pygame.K_SPACE]:
         jump_space_released = True
 
@@ -719,6 +767,8 @@ while running:
         sprite_offset_y = -5
 
     if not keys[pygame.K_SPACE] and wall_grab:
+        jump_sound.set_volume(sound_volume)
+        jump_sound.play()
         player_vel_y = -10
         if touching_wall_left:
             player_vel_x = 5
@@ -763,7 +813,9 @@ while running:
    
     if not keys[pygame.K_SPACE] and jump_power > 0 and not stun and not sliding or jump_power == jump_max :  
         sprite_offset_y = -5 
-        charged = False     
+        charged = False
+        jump_sound.set_volume(sound_volume)
+        jump_sound.play()
         player_vel_y -= jump_power
         grounded = False
         jump_available = False
@@ -784,6 +836,7 @@ while running:
         max_right, max_left = 10, -10
         side_jump = 8
 
+    #vertical movement & gravity
     if wall_grab:
         player_vel_y = 1
         player_vel_x = 0
@@ -809,6 +862,8 @@ while running:
 
     player.y += player_vel_y
 
+    #vertical collision
+    was_grounded = grounded
     for platform in platforms:
         if skip_collision_this_frame:
             continue
@@ -822,6 +877,13 @@ while running:
                 player_vel_y = 0  
                 grounded = True
                 grounded_platform = platform
+                if not was_grounded:
+                    if stun:
+                        vine_boom_sound.set_volume(sound_volume)
+                        vine_boom_sound.play()
+                    else:
+                        hit_sound.set_volume(sound_volume)
+                        hit_sound.play()
                 if grounded and jumped:
                     jump_cooldown = 15
                     jump_available = False
@@ -840,11 +902,13 @@ while running:
         player.height = 70
         sprite_offset_y = -5
 
+    #animation
     animation_timer += animation_speed
     if animation_timer >= 1:
         animation_timer = 0
         current_frame = (current_frame + 1) % 4
  
+    #sprite selection
     if stun:
         current_image = player_too_high         
     elif wall_grab: 
@@ -889,6 +953,7 @@ while running:
     if facing_right:
         current_image = pygame.transform.flip(current_image, True, False)
  
+    #camera
     camera_y = player.bottom - HEIGHT // 2 - CAMERA_FOOT_OFFSET
  
     if camera_y < 0:
