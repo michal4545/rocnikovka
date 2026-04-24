@@ -1,4 +1,3 @@
-#imports
 import pygame
 import sys
 import os
@@ -290,10 +289,10 @@ def handle_controls_events(back_hovered):
  
 
 
-#debug flags
-DEBUG_SHOW_PLATFORM_NUMBERS = False
+#debug
+DEBUG_SHOW_PLATFORM_NUMBERS = True
 DEBUG_SHOW_HITBOX = False
-DEBUG_SHOW_PLATFORM_COLLIDERS = False
+DEBUG_SHOW_PLATFORM_COLLIDERS = True
 DEBUG_HOT_RELOAD = True
 DEBUG_TELEPORT_ON_CLICK = True
  
@@ -490,7 +489,7 @@ platforms = [
     pygame.Rect(550, WORLD_HEIGHT - 5680, 200, 80), #55
     pygame.Rect(750, WORLD_HEIGHT - 5900, 100, 60), #56
     pygame.Rect(925, WORLD_HEIGHT - 5900, 100, 60), #57
-    pygame.Rect(750, WORLD_HEIGHT - 6055, 200, 80), #58
+    pygame.Rect(750, WORLD_HEIGHT - 6060, 200, 80), #58
     pygame.Rect(550, WORLD_HEIGHT - 6020, 100, 50), #59
     pygame.Rect(250, WORLD_HEIGHT - 6200, 200, 80), #60
     pygame.Rect(550, WORLD_HEIGHT - 6340, 285, 120), #61
@@ -499,12 +498,27 @@ platforms = [
     pygame.Rect(45, WORLD_HEIGHT - 6580, 60, 40), #64
     pygame.Rect(220, WORLD_HEIGHT - 6700, 100, 40), #65
     pygame.Rect(450, WORLD_HEIGHT - 6700, 80, 40), #66
-    pygame.Rect(760, WORLD_HEIGHT - 6700, 80, 30), #67
+    pygame.Rect(755, WORLD_HEIGHT - 6700, 80, 30), #67
     pygame.Rect(945, WORLD_HEIGHT - 6900, 80, 30), #68
     pygame.Rect(820, WORLD_HEIGHT - 7090, 120, 50), #69
     pygame.Rect(480, WORLD_HEIGHT - 7090, 120, 50), #70
     pygame.Rect(320, WORLD_HEIGHT - 7300, 210, 60), #71
     pygame.Rect(600, WORLD_HEIGHT - 7300, 60, 60), #72
+    pygame.Rect(100, WORLD_HEIGHT - 7500, 120, 60), #73
+    pygame.Rect(110, WORLD_HEIGHT - 7700, 100, 60), #74
+    pygame.Rect(450, WORLD_HEIGHT - 7650, 180, 60), #75
+    pygame.Rect(570, WORLD_HEIGHT - 7740, 60, 90), #76
+    pygame.Rect(370, WORLD_HEIGHT - 7940, 90, 40), #77
+    pygame.Rect(40, WORLD_HEIGHT - 8040, 90, 40), #78
+    pygame.Rect(200, WORLD_HEIGHT - 8140, 80, 60), #79
+    pygame.Rect(40, WORLD_HEIGHT - 8240, 90, 40), #80
+    pygame.Rect(160, WORLD_HEIGHT - 8440, 40, 40), #81
+    pygame.Rect(256, WORLD_HEIGHT - 8540, 512, 60), #82
+    pygame.Rect(720, WORLD_HEIGHT - 7900, 85, 50), #83
+    pygame.Rect(708, WORLD_HEIGHT - 8540, 60, 530), #84
+    pygame.Rect(850, WORLD_HEIGHT - 8100, 90, 90), #85
+    pygame.Rect(850, WORLD_HEIGHT - 8300, 90, 90), #86
+    pygame.Rect(850, WORLD_HEIGHT - 8500, 90, 90), #87
 
 ]
 
@@ -651,9 +665,17 @@ while running:
     else:
         icy = False
 
+    if icy:
+        player_speed = 0.1
+        ground_friction = 0.05
+        charge_friction = 0.1
+    else:
+        player_speed = 0.6
+        ground_friction = 0.3
+        charge_friction = 10
+        
     #input
     keys = pygame.key.get_pressed()
-    print(jump_cooldown)
     if keys[pygame.K_a] and not jumped and grounded and not stun and not sliding and not charged:
         player_vel_x -= player_speed
         if player_vel_x < -4:
@@ -681,17 +703,9 @@ while running:
    
     if not keys[pygame.K_a] and not keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_a] and keys[pygame.K_d] and grounded and not sliding or keys[pygame.K_SPACE] and grounded and not sliding and jump_cooldown <= 0:
         if keys[pygame.K_SPACE]:
-            if icy:
-                friction = 0.1
-            else:
-                friction = 10
+            friction = charge_friction
         else:
-            if icy:
-                friction = 0.05 
-                player_speed = 0.1
-            else:
-                friction = 0.3
-                player_speed = 0.6
+            friction = ground_friction
         if player_vel_x > 0:
             player_vel_x -= friction
             if player_vel_x < 0:
@@ -734,7 +748,7 @@ while running:
                 if abs(player.left - platform.right) <= 2:
                     touching_wall_left = True
 
-    #wall grab & jump logic
+    #wall grab and jump logic
     if jumped and not keys[pygame.K_SPACE]:
         jump_space_released = True
 
