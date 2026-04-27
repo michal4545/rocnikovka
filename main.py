@@ -290,10 +290,9 @@ def handle_controls_events(back_hovered):
 
 
 #debug
-DEBUG_SHOW_PLATFORM_NUMBERS = True
+DEBUG_SHOW_PLATFORM_NUMBERS = False
 DEBUG_SHOW_HITBOX = False
-DEBUG_SHOW_PLATFORM_COLLIDERS = True
-DEBUG_HOT_RELOAD = True
+DEBUG_SHOW_PLATFORM_COLLIDERS = False
 DEBUG_TELEPORT_ON_CLICK = True
  
 WORLD_HEIGHT = 9000
@@ -508,53 +507,21 @@ platforms = [
     pygame.Rect(110, WORLD_HEIGHT - 7700, 100, 60), #74
     pygame.Rect(450, WORLD_HEIGHT - 7650, 180, 60), #75
     pygame.Rect(570, WORLD_HEIGHT - 7740, 60, 90), #76
-    pygame.Rect(370, WORLD_HEIGHT - 7940, 90, 40), #77
+    pygame.Rect(270, WORLD_HEIGHT - 7940, 140, 40), #77
     pygame.Rect(40, WORLD_HEIGHT - 8040, 90, 40), #78
-    pygame.Rect(200, WORLD_HEIGHT - 8140, 80, 60), #79
+    pygame.Rect(300, WORLD_HEIGHT - 8140, 80, 60), #79
     pygame.Rect(40, WORLD_HEIGHT - 8240, 90, 40), #80
     pygame.Rect(160, WORLD_HEIGHT - 8440, 40, 40), #81
     pygame.Rect(256, WORLD_HEIGHT - 8540, 512, 60), #82
-    pygame.Rect(720, WORLD_HEIGHT - 7900, 85, 50), #83
+    pygame.Rect(720, WORLD_HEIGHT - 7900, 110, 50), #83
     pygame.Rect(708, WORLD_HEIGHT - 8540, 60, 530), #84
-    pygame.Rect(850, WORLD_HEIGHT - 8100, 90, 90), #85
-    pygame.Rect(850, WORLD_HEIGHT - 8300, 90, 90), #86
-    pygame.Rect(850, WORLD_HEIGHT - 8500, 90, 90), #87
+    pygame.Rect(850, WORLD_HEIGHT - 8100, 105, 90), #85
+    pygame.Rect(850, WORLD_HEIGHT - 8300, 105, 90), #86
+    pygame.Rect(850, WORLD_HEIGHT - 8500, 105, 90), #87
 
 ]
 
 export_map_to_png(platforms)
-
-#hot reload
-if DEBUG_HOT_RELOAD:
-    last_modified_time = os.path.getmtime(__file__)
-    
-    def reload_platforms():
-        global platforms
-        try:
-            with open(__file__, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-            
-            in_platforms = False
-            platforms_code = []
-            indent_count = 0
-            
-            for line in lines:
-                if 'platforms = [' in line:
-                    in_platforms = True
-                    platforms_code.append(line)
-                    continue
-                    
-                if in_platforms:
-                    platforms_code.append(line)
-                    if line.strip() == ']':
-                        break
-            
-            exec_globals = {'pygame': pygame, 'WORLD_HEIGHT': WORLD_HEIGHT}
-            exec(''.join(platforms_code), exec_globals)
-            platforms = exec_globals['platforms']
-            print("Platforms reloaded!")
-        except Exception as e:
-            print(f"Failed to reload: {e}")
  
 #game loop
 clock = pygame.time.Clock()
@@ -588,16 +555,6 @@ while running:
         else:
             game_state = new_state
         continue
-    
-    if DEBUG_HOT_RELOAD:
-        try:
-            current_time = os.path.getmtime(__file__)
-            if current_time != last_modified_time:
-                last_modified_time = current_time
-                time.sleep(0.05)
-                reload_platforms()
-        except:
-            pass
  
     #events
     for event in pygame.event.get():
