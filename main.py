@@ -676,7 +676,6 @@ while running:
 
     player_x_before = player.x
     player.x += player_vel_x
-    print(player_vel_x)
  
     for platform in platforms:
         if player.colliderect(platform):
